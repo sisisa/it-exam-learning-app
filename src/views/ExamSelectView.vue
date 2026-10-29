@@ -3,25 +3,59 @@ import { useRouter } from 'vue-router'
 import Button from 'primevue/button'
 import Card from 'primevue/card'
 import { useLearningStore } from '@/stores/useLearningStore'
-import { mockQuestions } from '@/data/mockQuestions'
 
 const router = useRouter()
 const learningStore = useLearningStore()
 
-const startExam = (examId) => {
-  const questionList = mockQuestions[examId]
-
-  if (!questionList) {
-    console.error(`問題データが見つかりません: ${examId}`)
-    return
+/**
+ * 試験種別に応じて問題データを取得する
+ */
+const fetchQuestions = async (examId) => {
+  const filePaths = {
+    'it-passport': '/data/it/questions.json',
+    'fundamental-examination': '/data/fe/questions.json',
+    'applied-information': '/data/ap/questions.json',
   }
 
-  learningStore.startLearning(examId, questionList)
+  const filePath = filePaths[examId]
 
-  router.push({
-    name: 'learning',
-    params: { examId },
-  })
+  if (!filePath) {
+    throw new Error(`未対応の試験です: ${examId}`)
+  }
+
+  const response = await fetch(filePath)
+
+  if (!response.ok) {
+    throw new Error(`問題データの取得に失敗しました: ${response.status}`)
+  }
+
+  const questions = await response.json()
+
+  // JSON内のexamが選択した試験と一致する問題を取得
+  return questions.filter((question) => question.exam === examId)
+}
+
+const startExam = async (examId) => {
+  try {
+    const questionList = await fetchQuestions(examId)
+
+    console.log('questionList', questionList)
+    console.log('examId', examId)
+
+    if (questionList.length === 0) {
+      console.error(`問題データが見つかりません: ${examId}`)
+      return
+    }
+
+    learningStore.startLearning(examId, questionList)
+
+    router.push({
+      name: 'learning',
+      params: { examId },
+    })
+  } catch (error) {
+    console.error('問題データの取得エラー:', error)
+  }
 }
 </script>
 

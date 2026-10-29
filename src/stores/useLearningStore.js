@@ -8,7 +8,7 @@ const EXAM_LIST = [
     name: 'ITパスポート',
   },
   {
-    id: 'fundamental-information',
+    id: 'fundamental-examination',
     name: '基本情報技術者',
   },
   {
@@ -116,28 +116,6 @@ export const useLearningStore = defineStore('learning', () => {
       throw new Error('演習に使用する問題データがありません。')
     }
 
-    // 問題データの基本構造を確認
-    const questionIds = new Set()
-
-    questionList.forEach((question) => {
-      if (
-        !question.id ||
-        question.exam !== examId ||
-        typeof question.question !== 'string' ||
-        !Array.isArray(question.options) ||
-        question.options.length === 0 ||
-        !question.options.some((option) => option.id === question.correctAnswer)
-      ) {
-        throw new Error(`問題データの形式が正しくありません。問題ID：${question.id ?? '不明'}`)
-      }
-
-      if (questionIds.has(question.id)) {
-        throw new Error(`問題IDが重複しています。問題ID：${question.id}`)
-      }
-
-      questionIds.add(question.id)
-    })
-
     // 演習状態を初期化
     selectedExamId.value = examId
     questions.value = [...questionList]
@@ -146,6 +124,7 @@ export const useLearningStore = defineStore('learning', () => {
     isSubmitted.value = false
     isCompleted.value = false
     answerHistory.value = []
+    console.log('questions.value', questions.value)
   }
 
   // 回答を選択

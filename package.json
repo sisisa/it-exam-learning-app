@@ -16,6 +16,7 @@
   "dependencies": {
     "@primevue/forms": "^5.0.4",
     "@primevue/themes": "^4.5.4",
+    "express": "^5.3.0",
     "pinia": "^4.0.3",
     "primeicons": "^8.0.2",
     "primevue": "^5.0.4",
