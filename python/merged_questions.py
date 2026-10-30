@@ -1,10 +1,14 @@
+"""
+JSON化した問題データを統合・ID付与し、
+data/(fe・ap・itのどれか)に保存するPythonの処理
+"""
 import json
 from pathlib import Path
 
 # ディレクトリ設定
-BASE_DIR = Path(__file__).parent
-SOURCE_DIR = BASE_DIR / "data" / "questions-json"
-OUTPUT_DIR = BASE_DIR / "data" / "fe"
+PROJECT_DIR = Path.cwd()
+SOURCE_DIR = PROJECT_DIR / "data" / "questions-json"
+OUTPUT_DIR = PROJECT_DIR / "data" / "ap"
 OUTPUT_FILE = OUTPUT_DIR / "questions.json"
 
 def merge_questions():
@@ -48,6 +52,7 @@ def merge_questions():
 
     print(f"\n結合完了: {len(merged_questions)}件")
     print(f"出力先: {OUTPUT_FILE}")
+
 
 if __name__ == "__main__":
     merge_questions()

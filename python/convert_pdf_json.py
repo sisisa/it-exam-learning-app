@@ -1,32 +1,33 @@
+"""
+IT試験のPDF問題データをJSON化するPythonの処理
+"""
 import json
 import re
 import sys
 import traceback
 from pathlib import Path
-import io
-
 import pymupdf
-import pytesseract
-from PIL import Image
 
 # ===== 設定・定数定義 =====
-PDF_PATH = Path("data/questions-pdf/ITパスポート/2025_ITパスポート_過去問.pdf")
-ANSWER_PDF_PATH = Path("data/questions-pdf/ITパスポート/2025_ITパスポート_過去問_回答例.pdf")
-OUTPUT_PATH = Path("data/questions-json/2025_ITパスポート_過去問.json")
+PDF_PATH = Path("data/questions-pdf/基本情報技術者試験/2025_基本情報技術者試験過去問_午前.pdf")
+ANSWER_PDF_PATH = Path("data/questions-pdf/基本情報技術者試験/2025_基本情報技術者試験過去問_午前_解答例.pdf")
+OUTPUT_PATH = Path("data/questions-json/2025_基本情報技術者試験過去問_午前.json")
 
-EXAM_CODE = "it-passport"
-EXAM_NAME = "ITパスポート"
+"""
+※指定のJSONサンプルに合わせて設定する想定だったが、
+ITパスポートと応用情報技術者試験の問題はOCR形式でないとJSON化出来なかったので、
+"""
+# ITパスポート:it-passport
+# 基本情報技術者試験：fundamental-examination
+# 応用情報技術者試験：applied-examination
+EXAM_CODE = "fundamental-examination"
 YEAR_CODE = "2025"  
-QUESTION_TYPE = "公開問題"
 
+EXAM_NAME = "基本情報技術者試験"
 CHOICE_LABELS = ("ア", "イ", "ウ", "エ")
-
-# Tesseractを使うために以下のように設定
-pytesseract.pytesseract.tesseract_cmd = r'C:\Program Files\Tesseract-OCR\tesseract.exe'
 
 # ログ表示設定
 DEBUG = True
-
 
 def log(message: str) -> None:
     """処理状況を標準出力へ表示する関数です。"""
@@ -42,20 +43,18 @@ def log_error(message: str) -> None:
     """エラーメッセージを標準エラー出力へ表示する関数です。"""
     print(f"[ERROR] {message}", file=sys.stderr, flush=True)
 
-
 def normalize_digits(value: str) -> str:
-    """全角数字を半角数字に変換します。"""
+    """全角数字を半角数字に変換"""
     return value.translate(str.maketrans("０１２３４５６７８９", "0123456789"))
 
-
 def normalize_text(text: str) -> str:
-    """テキストの不要な空白や特殊文字を整理し、不要なページ番号行を除去します。"""
+    """テキストの不要な空白や特殊文字を整理し、ページ番号行を除去して正規化します。"""
     text = text.replace("\u00a0", " ").replace("\ufeff", "")
     
+    # PDFのフッター等に含まれるページ番号行（例: "－ 8 －", "- 8 -"）を除去する
     lines = []
     for line in text.splitlines():
-        # PDFのフッター等に含まれるページ番号や区切り行を除外
-        if re.match(r"^\s*(?:[－\-ーー―]?\s*\d+\s*[－\-ーー―]?|\d+-)\s*$", line):
+        if re.match(r"^\s*[－\-ーー―]\s*\d+\s*[－\-ーー―]\s*$", line):
             continue
         lines.append(line)
     text = "\n".join(lines)
@@ -64,13 +63,11 @@ def normalize_text(text: str) -> str:
     text = re.sub(r"\n[ \t]*\n(?:[ \t]*\n)+", "\n\n", text)
     return text.strip()
 
-
 def extract_pages(pdf_path: Path) -> list[dict]:
     """
-    指定されたPDFを開き、ページごとのテキストを抽出します。
-    テキストが空（画像PDF）の場合は、pytesseractによるOCR処理を実行します。
+    指定された問題PDFファイルを開き、ページごとにテキストを抽出・正規化
     """
-    log(f"PDFファイルの読み込みを開始します: {pdf_path.resolve()}")
+    log(f"問題PDFファイルの読み込みを開始します: {pdf_path.resolve()}")
 
     if not pdf_path.is_file():
         raise FileNotFoundError(
@@ -88,24 +85,7 @@ def extract_pages(pdf_path: Path) -> list[dict]:
 
         for page_index, page in enumerate(document):
             page_number = page_index + 1
-            
-            # 1. まず通常のテキスト抽出を試みる
             text = page.get_text("text", sort=True)
-            
-            # 2. テキストが取得できない（画像PDFの）場合、OCRで文字を読み取る
-            if not text.strip():
-                log(f"[ページ {page_number}] テキスト未検出のためOCRを実行中...")
-                try:
-                    # ページを画像（解像度を高めるため dpi=200〜300）に変換
-                    pix = page.get_pixmap(dpi=200)
-                    img_bytes = pix.tobytes("png")
-                    image = Image.open(io.BytesIO(img_bytes))
-                    
-                    # pytesseractで日本語OCRを実行（jpn指定）
-                    text = pytesseract.image_to_string(image, lang="jpn")
-                except Exception as e:
-                    log_warning(f"[ページ {page_number}] OCR処理でエラーが発生しました: {e}")
-
             normalized = normalize_text(text)
 
             pages.append({
@@ -113,17 +93,22 @@ def extract_pages(pdf_path: Path) -> list[dict]:
                 "text": normalized,
             })
 
-            log(f"[ページ {page_number}/{page_count}] 抽出・OCR文字数={len(text)}、整理後={len(normalized)}")
+            log(f"[ページ {page_number}/{page_count}] 抽出文字数={len(text)}、整理後={len(normalized)}")
 
     return pages
 
 
 def extract_answers_from_pdf(answer_pdf_path: Path) -> dict[int, str]:
-    """解答例PDFから正解（ア・イ・ウ・エ）を抽出します（必要に応じてOCR対応も可）。"""
+    """
+    解答例PDFから問1〜問20等の正解（ア・イ・ウ・エ）を直接抽出し、
+    問題番号と正解文字（例: {1: "ウ", 2: "ア", ...}）の対応辞書を作成
+    ※解答例PDFが存在しない・取得できない場合はデフォルトで「ア」を設定
+    """
     answer_map = {}
 
     if not answer_pdf_path.is_file():
         log_warning(f"解答例PDFが見つからないため、仮の解答（ア）を設定します: {answer_pdf_path}")
+        # ファイルが存在しない場合の仮置き
         for i in range(1, 101):
             answer_map[i] = "ア"
         return answer_map
@@ -133,27 +118,28 @@ def extract_answers_from_pdf(answer_pdf_path: Path) -> dict[int, str]:
     with pymupdf.open(answer_pdf_path) as doc:
         full_text = ""
         for page in doc:
-            t = page.get_text("text", sort=True)
-            if not t.strip():
-                pix = page.get_pixmap(dpi=200)
-                t = pytesseract.image_to_string(Image.open(io.BytesIO(pix.tobytes("png"))), lang="jpn")
-            full_text += t + "\n"
+            full_text += page.get_text("text", sort=True) + "\n"
 
+    # 例: 「問1 ア」「問 1 : イ」「1 ウ」などのパターンを検出して、数字と「ア・イ・ウ・エ」を取得
     pattern = re.compile(r"(?:問\s*)?([0-9０-９]+)\s*[:：.\s]*([アイウエ])")
     matches = pattern.findall(full_text)
 
     for q_str, ans_str in matches:
         q_num = int(normalize_digits(q_str))
-        answer_map[q_num] = ans_str
+        answer_map[q_num] = ans_str  # 変換せずそのまま「ア・イ・ウ・エ」を保持
 
-    log(f"解答例から {len(answer_map)} 件の正解を取得しました。")
+    log(f"解答例から {len(answer_map)} 件の正解（ア〜エ）を取得しました。")
     return answer_map
 
 
 def split_question_blocks(pages: list[dict]) -> list[dict]:
-    """抽出テキストから問題番号を検出し、問題単位にブロック分割します。"""
-    log("問題番号を基準にテキストを各問題ブロックへ分割します。")
+    """
+    抽出テキストから「問1」「問2」などの問題開始パターンを検出し、
+    問題単位のデータブロックに分割
+    """
+    log("問題番号を基準にテキストを各問題ブロックへ分割")
 
+    # 行頭の「問1」「問 1」「問１」などを検出する正規表現
     question_pattern = re.compile(
         r"^\s*問\s*([0-9０-９]+)\s*(?:[：:．.]?\s*)(.*)$"
     )
@@ -195,69 +181,83 @@ def split_question_blocks(pages: list[dict]) -> list[dict]:
 
 
 def parse_question(block: dict) -> dict:
-    """各問題ブロックから問題文と選択肢（ア・イ・ウ・エ）を抽出します。"""
+    """
+    各問題ブロックから問題文と選択肢（ア・イ・ウ・エ）を分離・抽出し、
+    指定された構造のデータオブジェクトを作成します。
+    ※ 1行に複数の選択肢が並ぶパターンや途中で折り返されているケースにも対応します。
+    """
     number = block["question_number"]
     full_text = "\n".join(block["lines"])
 
-    # 選択肢ラベル（ア、イ、ウ、エ、およびOCR誤認識しやすいIや工）を検出
-    choice_pattern = re.compile(r"(?:^|[\s\n]+)([アイウエ工I])\s*[:：.）]?\s*")
+    # 【改良】行頭だけでなく、空白や改行の直後にある「ア」「イ」「ウ」「エ」を検出できるように修正
+    choice_pattern = re.compile(r"(?:^|[\s\n]+)([アイウエ])\s*[:：.）]?\s+")
+
     matches = list(choice_pattern.finditer(full_text))
 
     if not matches:
+        # 選択肢ラベルが見つからない場合のフォールバック構造
         return {
-            "id": f"{YEAR_CODE}-{EXAM_CODE}-ip-{number:03d}",
+           "id": f"{YEAR_CODE}-{EXAM_CODE}-ip-{number:03d}",
             "exam": EXAM_CODE,
             "category": "ストラテジ系",
+            "yearCode": YEAR_CODE,            
             "question": normalize_text(full_text),
             "options": [{label: ""} for label in CHOICE_LABELS],
             "correctAnswer": "ア",
         }
 
+    # 最初に見つかった選択肢ラベルの前までを「問題文」とする
     question_text = normalize_text(full_text[:matches[0].start()])
 
-    extracted_choices = {}
+    # 各選択肢のテキスト領域を順番に切り出して取得
+    choices = {label: "" for label in CHOICE_LABELS}
     for i, match in enumerate(matches):
-        raw_label = match.group(1)
-        label = "エ" if raw_label in ("I", "工") else raw_label
-
+        label = match.group(1)
         start_pos = match.end()
+        # 次の選択肢の開始位置、または全テキストの終了位置までを取得
         end_pos = matches[i + 1].start() if i + 1 < len(matches) else len(full_text)
         choice_content = full_text[start_pos:end_pos]
-        
-        if label in CHOICE_LABELS:
-            extracted_choices[label] = normalize_text(choice_content)
+        choices[label] = normalize_text(choice_content)
 
     return {
-        "id": f"{YEAR_CODE}-{EXAM_CODE}-ip-{number:03d}",
+       "id": f"{YEAR_CODE}-{EXAM_CODE}-ip-{number:03d}",
         "exam": EXAM_CODE,
         "category": "ストラテジ系",
+        "yearCode": YEAR_CODE,
         "question": question_text,
         "options": [
-            {label: extracted_choices.get(label, "")} for label in CHOICE_LABELS
+            {label: choices[label]} for label in CHOICE_LABELS
         ],
         "correctAnswer": "ア",
     }
 
 
 def convert_pdf_to_json(pdf_path: Path, answer_pdf_path: Path) -> list[dict]:
+    """
+    PDFからの抽出・パース・解答例の合成を行い、最終的なJSON用データ配列を構築
+    """
     pages = extract_pages(pdf_path)
     blocks = split_question_blocks(pages)
 
     log("各問題ブロックから問題文と4択選択肢の分解を行います。")
     questions = [parse_question(block) for block in blocks]
 
+    # 解答例PDFから「ア・イ・ウ・エ」形式で正解を取得
     answer_map = extract_answers_from_pdf(answer_pdf_path)
 
+    # 各問題の correctAnswer に正解（ア・イ・ウ・エ）を直接設定
     for q in questions:
         q_num_match = re.search(r"(\d+)$", q["id"])
         if q_num_match:
             q_num = int(q_num_match.group(1))
+            # 解答例マップにデータがあれば設定、なければ「ア」を仮置き
             q["correctAnswer"] = answer_map.get(q_num, "ア")
 
     return questions
 
 
 def save_json(data: list[dict], output_path: Path) -> None:
+    """指定されたJSON形式でファイル保存を行います。"""
     log(f"JSONファイルへ保存します: {output_path.resolve()}")
     output_path.parent.mkdir(parents=True, exist_ok=True)
 
@@ -269,10 +269,13 @@ def save_json(data: list[dict], output_path: Path) -> None:
 
 
 def main() -> int:
-    log("===== OCR対応 PDFからJSONへの変換処理を開始します =====")
+    log("===== PDFからJSONへの変換処理を開始します =====")
 
     try:
+        # 問題PDFと解答例PDFの処理・JSONデータ生成
         questions_data = convert_pdf_to_json(PDF_PATH, ANSWER_PDF_PATH)
+
+        # 保存実行
         save_json(questions_data, OUTPUT_PATH)
 
         log(f"===== 処理が正常に完了しました（全 {len(questions_data)} 問） =====")

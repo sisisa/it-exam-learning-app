@@ -1,50 +1,88 @@
-# .
+# 3つのIT資格試験学習支援アプリ
 
-This template should help get you started developing with Vue 3 in Vite.
+このアプリは、ITパスポート、基本情報技術者試験、応用情報技術者試験の過去問演習、およびローカルAIを活用した課題分析によって学習者の課題を明確に把握して学習効果を向上させることを目的としています。
 
-## Recommended IDE Setup
+---
 
-[VS Code](https://code.visualstudio.com/) + [Vue (Official)](https://marketplace.visualstudio.com/items?itemName=Vue.volar) (and disable Vetur).
+## 使用技術
 
-## Recommended Browser Setup
+- パッケージマネージャー: Bun
+- フロントエンド: Vue 3 (Composition API・JavaScript)
+- UIライブラリ：PrimeVue
+- サーバーサイド: Express
+- ローカルAI: Ollama (qwen2.5:1.5b)
+- OCR関連：Tesseract(pytesseract),PIL(Pythonの画像処理ライブラリ)
+  →画像形式になっているITパスポート・応用情報技術者試験のPDF問題データを取得してJSON化するために使用
 
-- Chromium-based browsers (Chrome, Edge, Brave, etc.):
-  - [Vue.js devtools](https://chromewebstore.google.com/detail/vuejs-devtools/nhdogjmejiglipccpnnnanhbledajbpd)
-  - [Turn on Custom Object Formatter in Chrome DevTools](http://bit.ly/object-formatters)
-- Firefox:
-  - [Vue.js devtools](https://addons.mozilla.org/en-US/firefox/addon/vue-js-devtools/)
-  - [Turn on Custom Object Formatter in Firefox DevTools](https://fxdx.dev/firefox-devtools-custom-object-formatters/)
+---
 
-## Customize configuration
+## セットアップと実行手順
 
-See [Vite Configuration Reference](https://vite.dev/config/).
+### 1. 依存関係のインストール
 
-## Project Setup
+プロジェクトのディレクトリで以下を実行し、必要なパッケージをインストールします。
 
-```sh
 bun install
+
+---
+
+### 2. ローカルAIの起動
+
+学習分析および問題生成に使用する軽量モデル (qwen2.5:1.5b) を準備して起動します。
+
+1. モデルのダウンロード (初回のみ)
+
+```JavaScript
+   ollama pull qwen2.5:1.5b
 ```
 
-### Compile and Hot-Reload for Development
+2. モデルの実行
 
-```sh
-bun dev
+```JavaScript
+   ollama run qwen2.5:1.5b
 ```
 
-### Compile and Minify for Production
+※ ポート番号 11434 で待機状態になります。
 
-```sh
-bun run build
+---
+
+### 3. サーバーサイドの起動
+
+解答データの保存処理およびAI連携機能を提供する Express サーバーを起動します。
+
+```JavaScript
+bun run server/index.js
 ```
 
-### Run Unit Tests with [Vitest](https://vitest.dev/)
+※ サーバーはポート番号 3000 で起動します。
 
-```sh
-bun test:unit
+---
+
+### 4. フロントエンドの起動
+
+開発用画面サーバーを起動します。
+
+```JavaScript
+bun run dev
 ```
 
-### Lint with [ESLint](https://eslint.org/)
+※ アプリケーションはポート番号 5173 で起動します。
 
-```sh
-bun lint
-```
+---
+
+## 問題データの格納先
+
+問題PDFからJSON化した各試験の問題データは以下のJSONファイルに登録されています。
+また、現状だと画面上から問題を追加する術はありません。(ゆくゆくはAIと連携したうえで、問題を自動生成する機能も付け加えたいと考えています)
+
+- ITパスポート: data/it/questions.json
+- 基本情報技術者試験: data/fe/questions.json
+- 応用情報技術者試験: data/ap/questions.json
+
+## 解答データの保存先
+
+演習時に入力された「間違った原因」や「調査記録」含めたデータは、以下のファイルに保存されます。
+
+- ITパスポート: data/it/answers.json
+- 基本情報技術者試験: data/fe/answers.json
+- 応用情報技術者試験: data/ap/answers.json

@@ -1,0 +1,46 @@
+[
+  {
+    "examId": "fundamental-examination",
+    "questionId": 1,
+    "category": "ストラテジ系",
+    "selectedAnswer": "エ",
+    "correctAnswer": "エ",
+    "isCorrect": true,
+    "incorrect_causes": "",
+    "investigation_records": "ファインチューニングを行うメリット：\n特定タスクやドメイン（専門分野）への最適化と精度向上・出力結果やトーンの安定・均一化などがある。個人的に特定のデータがどんなものが該当するかが気になった。",
+    "answeredAt": "2026-10-30T02:07:13.800Z"
+  },
+  {
+    "examId": "fundamental-examination",
+    "questionId": 2,
+    "category": "ストラテジ系",
+    "selectedAnswer": "イ",
+    "correctAnswer": "イ",
+    "isCorrect": true,
+    "incorrect_causes": "",
+    "investigation_records": "丸め誤差以外の計算プロセスで生じる誤差\n打切り誤差・情報落ち・桁落ち",
+    "answeredAt": "2026-10-30T02:09:00.482Z"
+  },
+  {
+    "examId": "fundamental-examination",
+    "questionId": 1,
+    "category": "ストラテジ系",
+    "selectedAnswer": "イ",
+    "correctAnswer": "エ",
+    "isCorrect": false,
+    "incorrect_causes": "ファインチューニングに付いて聞き馴染みはあったが、何をするのかまでは分かっていなかった。",
+    "investigation_records": "ファインチューニングで特定のデータを用いて追加で学習を行うとは？：\n株価の予測をするケースの特定のデータ\n\n• 株価・時系列データ\n\t• 過去の始値、終値、高値、安値、出来高\n\t• 移動平均線、RSI、MACDなどの各種テクニカル指標\n• 企業のファンダメンタルズ（基本的事項）データ\n\t• 決算短信、売上高、営業利益、EPS（1株当たり当期純利益）、配当実績\n\t• 企業の格付け情報やセクター（業種）情報\n• 外部環境・マクロ経済データ\n\t• 為替レート（ドル円など）、金利、原油価格、インフレ率（CPI）\n\t• 主要な株価指数（S&P500、日経平均、NASDAQなど）の動き\n• ニュース・テキストデータ（LLMや自然言語処理モデルを使う場合）\n",
+    "answeredAt": "2026-10-30T02:20:03.884Z"
+  },
+  {
+    "examId": "fundamental-examination",
+    "questionId": 1,
+    "category": "ストラテジ系",
+    "selectedAnswer": "エ",
+    "correctAnswer": "エ",
+    "isCorrect": true,
+    "incorrect_causes": "",
+    "investigation_records": "大規模言語モデルはなぜ大規模なのか？：\n人間の複雑で多様な言語や知識をすべて覚え込み、文脈を深く理解して高い精度で出力を生み出すために、膨大なデータ、数億〜数兆にのぼるパラメータ（調整可能な数値）、そして莫大な計算資源を使っているからです。",
+    "answeredAt": "2026-10-30T02:23:51.067Z"
+  }
+]
